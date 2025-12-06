@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.11)
 project(MultiNEAT)
 
+option(MULTINEAT_ENABLE_PYTHON "Build Python bindings and require Boost.Python" OFF)
 
 if(MINGW OR CYGWIN)
     add_definitions(-O3)
@@ -8,70 +9,72 @@ endif()
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj")
 
-find_package(PythonLibs REQUIRED)
-include(FindPythonLibs)
-#set(Boost_Path "C:/boost/include")
+if(MULTINEAT_ENABLE_PYTHON)
+    find_package(PythonLibs REQUIRED)
+    include(FindPythonLibs)
+    #set(Boost_Path "C:/boost/include")
 
-#set(BOOST_ROOT "C:\\Boost")
-#set(BOOSTROOT "C:\\Boost")
+    #set(BOOST_ROOT "C:\\Boost")
+    #set(BOOSTROOT "C:\\Boost")
 
-add_definitions("-DMS_WIN64")
+    add_definitions("-DMS_WIN64")
 
-set(Boost_USE_STATIC_LIBS       OFF) # only find static libs
-set(Boost_USE_MULTITHREADED      ON)
-set(Boost_USE_STATIC_RUNTIME   OFF)
+    set(Boost_USE_STATIC_LIBS       OFF) # only find static libs
+    set(Boost_USE_MULTITHREADED      ON)
+    set(Boost_USE_STATIC_RUNTIME   OFF)
 
-find_package(BOOST COMPONENTS REQUIRED
-        system
-        python
-        numpy
-        date_time
-        filesystem
-        serialization)
+    find_package(BOOST COMPONENTS REQUIRED
+            system
+            python
+            numpy
+            date_time
+            filesystem
+            serialization)
 
-if(Boost_FOUND)
-    message(STATUS "It works!")
-    include_directories(${Boost_INCLUDE_DIRS})
-    link_directories("C:/Boost/lib")
+    if(Boost_FOUND)
+        message(STATUS "It works!")
+        include_directories(${Boost_INCLUDE_DIRS})
+        link_directories("C:/Boost/lib")
+    endif()
+
+    include_directories(${PYTHON_INCLUDE_DIRS})
+
+    add_definitions(-DUSE_BOOST_PYTHON)
+    #add_definitions(-DUSE_BOOST_NUMPY)
+    add_definitions(-DUSE_BOOST_RANDOM)
+    #add_definitions(-DVDEBUG)
 endif()
 
 
-include_directories(${PYTHON_INCLUDE_DIRS})
+set(MULTINEAT_CORE_SOURCES
+    ${PROJECT_SOURCE_DIR}/src/Assert.h
+    ${PROJECT_SOURCE_DIR}/src/Genes.h
+    ${PROJECT_SOURCE_DIR}/src/Genome.cpp
+    ${PROJECT_SOURCE_DIR}/src/Genome.h
+    ${PROJECT_SOURCE_DIR}/src/Innovation.cpp
+    ${PROJECT_SOURCE_DIR}/src/Innovation.h
+    ${PROJECT_SOURCE_DIR}/src/NeuralNetwork.cpp
+    ${PROJECT_SOURCE_DIR}/src/NeuralNetwork.h
+    ${PROJECT_SOURCE_DIR}/src/Parameters.cpp
+    ${PROJECT_SOURCE_DIR}/src/Parameters.h
+    ${PROJECT_SOURCE_DIR}/src/PhenotypeBehavior.cpp
+    ${PROJECT_SOURCE_DIR}/src/PhenotypeBehavior.h
+    ${PROJECT_SOURCE_DIR}/src/Population.cpp
+    ${PROJECT_SOURCE_DIR}/src/Population.h
+    ${PROJECT_SOURCE_DIR}/src/Random.cpp
+    ${PROJECT_SOURCE_DIR}/src/Random.h
+    ${PROJECT_SOURCE_DIR}/src/Species.cpp
+    ${PROJECT_SOURCE_DIR}/src/Species.h
+    ${PROJECT_SOURCE_DIR}/src/Substrate.cpp
+    ${PROJECT_SOURCE_DIR}/src/Substrate.h
+    ${PROJECT_SOURCE_DIR}/src/Utils.cpp
+    ${PROJECT_SOURCE_DIR}/src/Utils.h
+    ${PROJECT_SOURCE_DIR}/src/Traits.h
+    ${PROJECT_SOURCE_DIR}/src/Traits.cpp)
 
-add_definitions(-DUSE_BOOST_PYTHON)
-#add_definitions(-DUSE_BOOST_NUMPY)
-add_definitions(-DUSE_BOOST_RANDOM)
-#add_definitions(-DVDEBUG)
+add_library(MultiNEAT STATIC ${MULTINEAT_CORE_SOURCES})
 
-
-add_executable(MultiNEAT ${PROJECT_SOURCE_DIR}/src/Assert.h
-                         ${PROJECT_SOURCE_DIR}/src/Genes.h
-                         ${PROJECT_SOURCE_DIR}/src/Genome.cpp
-                         ${PROJECT_SOURCE_DIR}/src/Genome.h
-                         ${PROJECT_SOURCE_DIR}/src/Innovation.cpp
-                         ${PROJECT_SOURCE_DIR}/src/Innovation.h
-                         ${PROJECT_SOURCE_DIR}/src/Main.cpp
-                         ${PROJECT_SOURCE_DIR}/src/NeuralNetwork.cpp
-                         ${PROJECT_SOURCE_DIR}/src/NeuralNetwork.h
-                         ${PROJECT_SOURCE_DIR}/src/Parameters.cpp
-                         ${PROJECT_SOURCE_DIR}/src/Parameters.h
-                         ${PROJECT_SOURCE_DIR}/src/PhenotypeBehavior.cpp
-                         ${PROJECT_SOURCE_DIR}/src/PhenotypeBehavior.h
-                         ${PROJECT_SOURCE_DIR}/src/Population.cpp
-                         ${PROJECT_SOURCE_DIR}/src/Population.h
-                         ${PROJECT_SOURCE_DIR}/src/PythonBindings.cpp
-                         ${PROJECT_SOURCE_DIR}/src/Random.cpp
-                         ${PROJECT_SOURCE_DIR}/src/Random.h
-                         ${PROJECT_SOURCE_DIR}/src/Species.cpp
-                         ${PROJECT_SOURCE_DIR}/src/Species.h
-                         ${PROJECT_SOURCE_DIR}/src/Substrate.cpp
-                         ${PROJECT_SOURCE_DIR}/src/Substrate.h
-                         ${PROJECT_SOURCE_DIR}/src/Utils.cpp
-                         ${PROJECT_SOURCE_DIR}/src/Utils.h
-                         ${PROJECT_SOURCE_DIR}/src/Traits.h
-                         ${PROJECT_SOURCE_DIR}/src/Traits.cpp)
-
-target_link_libraries(MultiNEAT
-        "ws2_32"
-        ${BOOST_LIBRARIES}
-        ${PYTHON_LIBRARIES})
+if(MULTINEAT_ENABLE_PYTHON)
+    target_sources(MultiNEAT PRIVATE ${PROJECT_SOURCE_DIR}/src/PythonBindings.cpp ${PROJECT_SOURCE_DIR}/src/Main.cpp)
+    target_link_libraries(MultiNEAT PRIVATE "ws2_32" ${BOOST_LIBRARIES} ${PYTHON_LIBRARIES})
+endif()
